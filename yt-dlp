@@ -1,0 +1,5 @@
+#! /bin/bash
+
+: ${YT_DLP_DIR:=$PWD}
+
+docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" jauderho/yt-dlp $@

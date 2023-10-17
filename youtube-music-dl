@@ -1,0 +1,3 @@
+#! /bin/bash
+
+yt-dlp -f bestaudio --extract-audio --audio-format mp3 --audio-quality 0 --add-metadata --embed-thumbnail --output "%(title)s.%(ext)s" --ignore-errors $@
