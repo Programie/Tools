@@ -1,3 +1,7 @@
 #! /bin/bash
 
-yt-dlp -f bestaudio --extract-audio --audio-format mp3 --audio-quality 0 --add-metadata --embed-thumbnail --output "%(title)s.%(ext)s" --ignore-errors $@
+if command -v xdg-user-dir > /dev/null; then
+    export YT_DLP_DIR=$(xdg-user-dir MUSIC)
+fi
+
+yt-dlp -f bestaudio --extract-audio --audio-format mp3 --audio-quality 0 --add-metadata --embed-thumbnail --output "%(uploader)s/%(title)s.%(ext)s" --ignore-errors $@
