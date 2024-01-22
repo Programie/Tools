@@ -35,4 +35,13 @@ If your borg binary is not in the default search paths, you might specify the pa
 
 To list your configured repositories, execute `borg-helper.py list`.
 
-To execute borg on a specific repository, execute `borg-helper.py <repository> <arguments>`. For example, `borg-helper.py my-repository info` will execute `borg info` on the repository `my-repository`.
+The example from above will show the following output:
+```
+Available repositories:
+  another-repository (ssh://user@example.com/path/to/repository)
+  my-repository (/path/to/your/repository)
+```
+
+To execute borg on a specific repository, execute `borg-helper.py <repository> <arguments>`.
+
+Keeping the example from above, `borg-helper.py my-repository info` will execute `borg info` on the repository `my-repository` located at `/path/to/your/repository`. It is basically the same as executing `borg info /path/to/your/repository`.
