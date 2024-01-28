@@ -70,7 +70,11 @@ class BorgHelper:
         if "ssh_key" in repository_config:
             borg_env["BORG_RSH"] = f"ssh -i '{repository_config['ssh_key']}'"
 
-        with subprocess.Popen([self.borg_binary] + arguments, env=borg_env) as borg_process:
+        command_line = [self.borg_binary] + arguments
+
+        print(f"> \033[0;32m{subprocess.list2cmdline(command_line)}\033[0m", file=sys.stderr)
+
+        with subprocess.Popen(command_line, env=borg_env) as borg_process:
             borg_process.wait()
 
             return borg_process.returncode
