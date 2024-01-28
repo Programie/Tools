@@ -70,7 +70,7 @@ class BorgHelper:
         if "ssh_key" in repository_config:
             borg_env["BORG_RSH"] = f"ssh -i '{repository_config['ssh_key']}'"
 
-        with subprocess.Popen(["borg"] + arguments, env=borg_env) as borg_process:
+        with subprocess.Popen([self.borg_binary] + arguments, env=borg_env) as borg_process:
             borg_process.wait()
 
             return borg_process.returncode
