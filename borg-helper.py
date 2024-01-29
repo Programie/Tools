@@ -20,8 +20,10 @@ class BorgHelper:
             "borg-helper.json"
         ]
 
+        self.ask_before_execute = False
         self.borg_binary = "borg"
         self.repositories = {}
+        self.command_aliases = {}
 
     def load_configs(self) -> None:
         for path in self.config_paths:
@@ -36,6 +38,9 @@ class BorgHelper:
 
             if "borg_binary" in config:
                 self.borg_binary = config["borg_binary"]
+
+            if "aliases" in config:
+                self.command_aliases.update(config["aliases"])
 
             for repository_name, repository_config in config.get("repositories", {}).items():
                 self.add_repository(repository_name, repository_config)
@@ -70,20 +75,45 @@ class BorgHelper:
         if "ssh_key" in repository_config:
             borg_env["BORG_RSH"] = f"ssh -i '{repository_config['ssh_key']}'"
 
+        command_aliases = repository_config.get("aliases", {})
+
+        if len(arguments):
+            arguments = self.resolve_alias(arguments, command_aliases)
+            arguments = self.resolve_alias(arguments, self.command_aliases)
+
         command_line = [self.borg_binary] + arguments
+        command_line = " ".join(command_line)
 
-        print(f"> \033[0;32m{subprocess.list2cmdline(command_line)}\033[0m", file=sys.stderr)
+        print(f"> \033[0;32m{command_line}\033[0m", file=sys.stderr)
 
-        with subprocess.Popen(command_line, env=borg_env) as borg_process:
+        if self.ask_before_execute:
+            if input("Are you sure to execute the command above? [Y/n] ").lower().startswith("n"):
+                return 1
+
+        with subprocess.Popen(command_line, env=borg_env, shell=True) as borg_process:
             borg_process.wait()
 
             return borg_process.returncode
 
+    @staticmethod
+    def resolve_alias(arguments: list[str], aliases: dict[str, str]) -> list[str]:
+        if not len(arguments):
+            return []
+
+        command = arguments[0]
+        if command not in aliases:
+            return arguments
+
+        return aliases[command].split(" ") + arguments[1:]
+
 
 def main():
-    if len(sys.argv) == 1:
-        print("Usage: {} <repository> [borg arguments]".format(sys.argv[0]), file=sys.stderr)
+    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] == "-i"):
+        print("Usage: {} [-i] <repository> [borg arguments]".format(sys.argv[0]), file=sys.stderr)
         print("       {} list".format(sys.argv[0]), file=sys.stderr)
+        print("")
+        print("Options:")
+        print(" -i    Ask before executing borg command")
         return 1
 
     borg_helper = BorgHelper()
@@ -103,8 +133,16 @@ def main():
 
         return 0
 
+    if sys.argv[1] == "-i":
+        borg_helper.ask_before_execute = True
+        repository_name = sys.argv[2]
+        arguments = sys.argv[3:]
+    else:
+        repository_name = sys.argv[1]
+        arguments = sys.argv[2:]
+
     try:
-        return borg_helper.execute_borg(sys.argv[1], sys.argv[2:])
+        return borg_helper.execute_borg(repository_name, arguments)
     except ConfigError as error:
         print(error, file=sys.stderr)
 
