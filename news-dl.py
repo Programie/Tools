@@ -15,6 +15,12 @@ class Item:
 
 
 class NewsAPI:
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     def get_categories(self) -> dict[int, str]:
         pass
 
@@ -69,8 +75,14 @@ class TTRSS(NewsAPI):
     def __init__(self, base_url: str, username: str, password: str):
         self.api_url = f"{base_url}/api/"
         self.session_id = None
+        self.username = username
+        self.password = password
 
-        self.login(username, password)
+    def __enter__(self):
+        self.login(self.username, self.password)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logout()
 
     def request(self, method: str, parameters: dict):
         response = requests.post(self.api_url, json={"op": method} | parameters)
@@ -141,39 +153,40 @@ def main():
     else:
         raise RuntimeError(f"Invalid API type: {api_type}")
 
-    category_name = config.get("category")
+    with news_api:
+        category_name = config.get("category")
 
-    categories = news_api.get_categories()
-    category_id = list(categories.keys())[list(categories.values()).index(category_name)]
+        categories = news_api.get_categories()
+        category_id = list(categories.keys())[list(categories.values()).index(category_name)]
 
-    items = news_api.get_category_items(category_id)
+        items = news_api.get_category_items(category_id)
 
-    if not items:
-        print(f"No new items found in category '{category_name}'")
-        return
+        if not items:
+            print(f"No new items found in category '{category_name}'")
+            return
 
-    print(f"Found {len(items)} items to be downloaded:")
+        print(f"Found {len(items)} items to be downloaded:")
 
-    for item in items:
-        print(f"  {item.title} [{item.url}]")
+        for item in items:
+            print(f"  {item.title} [{item.url}]")
 
-    print()
+        print()
 
-    if input("Start download? [Y/n] ").strip().lower().startswith("n"):
-        return
+        if input("Start download? [Y/n] ").strip().lower().startswith("n"):
+            return
 
-    for index, item in enumerate(items):
-        print(f"Downloading item {index + 1} of {len(items)}: {item.title} [{item.url}]")
+        for index, item in enumerate(items):
+            print(f"Downloading item {index + 1} of {len(items)}: {item.title} [{item.url}]")
 
-        exit_code = subprocess.run(config.get("download_command").format_map(item.data), shell=True).returncode
-        if exit_code:
-            print(f"Command failed with exit code {exit_code}")
-            continue
+            exit_code = subprocess.run(config.get("download_command").format_map(item.data), shell=True).returncode
+            if exit_code:
+                print(f"Command failed with exit code {exit_code}")
+                continue
 
-        if input("Download successful. Mark item as read? [Y/n] ").strip().lower().startswith("n"):
-            continue
+            if input("Download successful. Mark item as read? [Y/n] ").strip().lower().startswith("n"):
+                continue
 
-        news_api.mark_item_as_read(item)
+            news_api.mark_item_as_read(item)
 
 
 if __name__ == "__main__":
