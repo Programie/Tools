@@ -175,18 +175,30 @@ def main():
         if input("Start download? [Y/n] ").strip().lower().startswith("n"):
             return
 
+        successful_items = []
+
         for index, item in enumerate(items):
             print(f"Downloading item {index + 1} of {len(items)}: {item.title} [{item.url}]")
 
             exit_code = subprocess.run(config.get("download_command").format_map(item.data), shell=True).returncode
             if exit_code:
-                print(f"Command failed with exit code {exit_code}")
+                print(f"Command failed with exit code {exit_code}, skipping for mark as read")
                 continue
 
-            if input("Download successful. Mark item as read? [Y/n] ").strip().lower().startswith("n"):
-                continue
+            successful_items.append(item)
 
-            news_api.mark_item_as_read(item)
+        if successful_items:
+            print()
+            print(f"The following items were downloaded successfully:")
+
+            for item in successful_items:
+                print(f"  {item.title} [{item.url}]")
+
+            print()
+
+            if not input("Mark them as read? [Y/n] ").strip().lower().startswith("n"):
+                for item in successful_items:
+                    news_api.mark_item_as_read(item)
 
 
 if __name__ == "__main__":
