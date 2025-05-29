@@ -1,7 +1,16 @@
 #! /bin/bash
 
 : ${YT_DLP_DIR:=$PWD}
+: ${YT_DLP_COOKIES:=}
 
 echo "Using destination path: ${YT_DLP_DIR}"
 
-docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" jauderho/yt-dlp "$@"
+if [[ ${YT_DLP_COOKIES} ]]; then
+    cookies_volume="-v ${YT_DLP_COOKIES}:/cookies.txt:ro"
+    cookies_option="--cookies /cookies.txt"
+else
+    cookies_volume=""
+    cookies_option=""
+fi
+
+docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" ${cookies_volume} jauderho/yt-dlp ${cookies_option} "$@"
