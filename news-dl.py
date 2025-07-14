@@ -12,6 +12,10 @@ class Item:
     title: str
     url: str
     data: dict
+    download_command: str
+
+    def download(self):
+        return subprocess.run(self.download_command.format_map(self.data), shell=True).returncode
 
 
 class NewsAPI:
@@ -24,7 +28,7 @@ class NewsAPI:
     def get_categories(self) -> dict[int, str]:
         pass
 
-    def get_category_items(self, category_id) -> list[Item]:
+    def get_category_items(self, category_id, download_command: str) -> list[Item]:
         pass
 
     def mark_item_as_read(self, item: Item):
@@ -49,7 +53,7 @@ class NextcloudNews(NewsAPI):
 
         return folders
 
-    def get_category_items(self, category_id: int):
+    def get_category_items(self, category_id: int, download_command: str):
         request = requests.get(f"{self.base_url}/items", auth=self.auth, params={"type": 1, "getRead": "false", "batchSize": -1, "id": category_id})
         request.raise_for_status()
 
@@ -61,6 +65,7 @@ class NextcloudNews(NewsAPI):
             item.title = raw_item["title"]
             item.url = raw_item["url"]
             item.data = raw_item
+            item.download_command = download_command
 
             items.append(item)
 
@@ -120,7 +125,7 @@ class TTRSS(NewsAPI):
 
         return categories
 
-    def get_category_items(self, category_id: int):
+    def get_category_items(self, category_id: int, download_command: str):
         articles = self.call_method("getHeadlines", {"feed_id": category_id, "is_cat": True, "view_mode": "unread"})
 
         items = []
@@ -131,6 +136,7 @@ class TTRSS(NewsAPI):
             item.title = article["title"]
             item.url = article["link"]
             item.data = article
+            item.command = download_command
 
             items.append(item)
 
@@ -154,15 +160,18 @@ def main():
         raise RuntimeError(f"Invalid API type: {api_type}")
 
     with news_api:
-        category_name = config.get("category")
+        items = []
 
-        categories = news_api.get_categories()
-        category_id = list(categories.keys())[list(categories.values()).index(category_name)]
+        for category in config.get("categories"):
+            category_name = category.get("name")
 
-        items = news_api.get_category_items(category_id)
+            categories = news_api.get_categories()
+            category_id = list(categories.keys())[list(categories.values()).index(category_name)]
+
+            items.extend(news_api.get_category_items(category_id, category.get("download_command")))
 
         if not items:
-            print(f"No new items found in category '{category_name}'")
+            print(f"No new items found")
             return
 
         print(f"Found {len(items)} items to be downloaded:")
@@ -180,7 +189,7 @@ def main():
         for index, item in enumerate(items):
             print(f"Downloading item {index + 1} of {len(items)}: {item.title} [{item.url}]")
 
-            exit_code = subprocess.run(config.get("download_command").format_map(item.data), shell=True).returncode
+            exit_code = item.download()
             if exit_code:
                 print(f"Command failed with exit code {exit_code}, skipping for mark as read")
                 continue
