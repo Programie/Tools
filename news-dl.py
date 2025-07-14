@@ -185,6 +185,7 @@ def main():
             return
 
         successful_items = []
+        failed_items = []
 
         for index, item in enumerate(items):
             print(f"Downloading item {index + 1} of {len(items)}: {item.title} [{item.url}]")
@@ -192,9 +193,9 @@ def main():
             exit_code = item.download()
             if exit_code:
                 print(f"Command failed with exit code {exit_code}, skipping for mark as read")
-                continue
-
-            successful_items.append(item)
+                failed_items.append(item)
+            else:
+                successful_items.append(item)
 
         if successful_items:
             print()
@@ -208,6 +209,13 @@ def main():
             if not input("Mark them as read? [Y/n] ").strip().lower().startswith("n"):
                 for item in successful_items:
                     news_api.mark_item_as_read(item)
+
+        if failed_items:
+            print()
+            print(f"The following items failed to download:")
+
+            for item in failed_items:
+                print(f"  {item.title} [{item.url}]")
 
 
 if __name__ == "__main__":
