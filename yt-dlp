@@ -14,9 +14,9 @@ else
 fi
 
 if [[ -x /usr/local/bin/yt-dlp ]]; then
-    yt_dlp="/usr/local/bin/yt-dlp"
+    yt_dlp="/usr/local/bin/yt-dlp -P ${YT_DLP_DIR}"
 elif [[ -x /usr/bin/yt-dlp ]]; then
-    yt_dlp="/usr/bin/yt-dlp"
+    yt_dlp="/usr/bin/yt-dlp -P ${YT_DLP_DIR}"
 else
     yt_dlp="docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" ${cookies_volume} jauderho/yt-dlp"
 fi
