@@ -3,7 +3,16 @@
 : ${YT_DLP_DIR:=$PWD}
 : ${YT_DLP_COOKIES:=}
 
+if [[ -z ${YT_DLP_TEMP} ]]; then
+    if command -v xdg-user-dir > /dev/null; then
+        YT_DLP_TEMP=$(xdg-user-dir DOWNLOAD)
+    else
+        YT_DLP_TEMP="${HOME}/Downloads"
+    fi
+fi
+
 echo "Using destination path: ${YT_DLP_DIR}"
+echo "Temp dir: ${YT_DLP_TEMP}"
 
 if [[ ${YT_DLP_COOKIES} ]]; then
     cookies_volume="-v ${YT_DLP_COOKIES}:/cookies.txt:ro"
@@ -14,11 +23,13 @@ else
 fi
 
 if [[ -x /usr/local/bin/yt-dlp ]]; then
-    yt_dlp="/usr/local/bin/yt-dlp -P ${YT_DLP_DIR}"
+    yt_dlp="/usr/local/bin/yt-dlp"
 elif [[ -x /usr/bin/yt-dlp ]]; then
-    yt_dlp="/usr/bin/yt-dlp -P ${YT_DLP_DIR}"
+    yt_dlp="/usr/bin/yt-dlp"
 else
-    yt_dlp="docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" ${cookies_volume} jauderho/yt-dlp"
+    yt_dlp="docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" -v "${YT_DLP_TEMP}:/temp" ${cookies_volume} jauderho/yt-dlp"
+    YT_DLP_DIR="/downloads"
+    YT_DLP_TEMP="/temp"
 fi
 
-${yt_dlp} ${cookies_option} "$@"
+${yt_dlp} -P ${YT_DLP_DIR} -P temp:${YT_DLP_TEMP} ${cookies_option} "$@"
