@@ -13,4 +13,12 @@ else
     cookies_option=""
 fi
 
-docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" ${cookies_volume} jauderho/yt-dlp ${cookies_option} "$@"
+if [[ -x /usr/local/bin/yt-dlp ]]; then
+    yt_dlp="/usr/local/bin/yt-dlp"
+elif [[ -x /usr/bin/yt-dlp ]]; then
+    yt_dlp="/usr/bin/yt-dlp"
+else
+    yt_dlp="docker run --rm --user $UID:$GID -v "$YT_DLP_DIR:/downloads" ${cookies_volume} jauderho/yt-dlp"
+fi
+
+${yt_dlp} ${cookies_option} "$@"
